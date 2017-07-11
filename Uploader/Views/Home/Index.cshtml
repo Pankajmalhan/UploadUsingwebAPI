@@ -5,21 +5,29 @@
 <html>
 <head>
     <title>File Upload Example in AngularJS</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.4/angular.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 </head>
 
 <body ng-app="fupApp">
 
     <div ng-controller="fupController">
-        <input type="file" id="file" name="file" multiple
-               onchange="angular.element(this).scope().getFileDetails(this)" />
+        <label class="btn btn-primary" for="file">
+            <input type="file" id="file" name="file" multiple style="display:none"
+                   onchange="angular.element(this).scope().getFileDetails(this)">
+            <i class="fa fa-upload" aria-hidden="true"></i>  Upload File(s)...
+        </label>
+        
 
-        <input type="button" ng-click="uploadFiles()" value="Upload" />
 
-        <!--ADD A PROGRESS BAR ELEMENT.-->
-        <p><progress id="pro" value="0"></progress></p>
-    </div>
+            <!--ADD A PROGRESS BAR ELEMENT.-->
+       <div id="proDiv">
+
+       </div>
+</div>
 
 </body>
 <script>
@@ -39,57 +47,114 @@
                 }
 
             });
+            if ($scope.files != undefined && ($scope.files.length > 0)) {
+               
+                var fileSizeFlag = true;
+                var fileExtensionFlag = true;
+                /*
+                Edit as per requirement
+                */
+                var maxfilesize = 1024 * 5;
+                var fileExtension = ['jpg', 'jpeg', 'png', 'bmp', 'gif'];
+
+                for (var i in $scope.files) {
+                    if ($.inArray($scope.files[i].type.split("/")[1], fileExtension) == -1) {
+                        fileExtensionFlag = false;
+                        alert('Uploaded file type must be ' + fileExtension.join(","));
+                        break;
+                    }
+
+                }
+
+                if (fileExtensionFlag) {
+                    for (var i in $scope.files) {
+                        if (($scope.files[i].size / 1024) > maxfilesize) {
+                            fileSizeFlag = false;
+                            alert('File size can not be more than ' + maxfilesize + ' MB')
+                            break;
+                        }
+                    }
+                }
+
+
+
+
+
+
+
+                if (fileSizeFlag && fileExtensionFlag) {
+                    var totalItems = $scope.files.length;
+                    var count = 1;
+                    $("#proDiv").html('');
+                    $("#proDiv").append(' <div class="progress" style="width:400px">\
+                                                   <div id="progressBar" class="progress-bar progress-bar-striped bg-success" role="progressbar" \
+                                                    style="width: 0%; font-weight: bold; color:white" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div></div>');
+                    for (var i in $scope.files) {
+                        var data_ = new FormData();
+                        data_.append("FileUploaded", $scope.files[i]);
+  
+                    $.ajax({
+                        type: "POST",
+                        url: "http://localhost:55588/api/values/LoadFiles",
+                        cache: false,
+                        contentType: false,
+                        processData: false,
+                        dataType: "json",
+                        data: data_,
+                        success: function (response) {
+
+                            var elem = document.getElementById("progressBar");
+
+                            elem.style.width = count * 100 / totalItems + '%';
+                                   
+                            $("#progressBar").html((count * 100 / totalItems) + "%");
+                                
+                                    count++;
+
+                            //var elem = document.getElementById("progressBar");
+                            //var width = 0;
+                            //var id = setInterval(frame, 50);
+                            //function frame() {
+                            //    if (width >= 100) {
+                            //        clearInterval(id);
+                            //    } else {
+                            //        width++;
+                            //        elem.style.width = width + '%';
+                            //        var num = width * 1 / 10;
+                            //        num = num.toFixed(0);
+                            //        $("#progressBar").html(width + "%");
+                            //    }
+                            //}
+
+                        },
+                        failure: function (response) {
+                            alert(response.d);
+                        }
+                    });
+
+                    };
+
+                    setTimeout(function () {
+                        $("#proDiv").html('');
+                        $("#proDiv").append(' <img src="http://localhost:55588/images/file1.jpg" class="img-rounded" alt="Cinque Terre" width="160" height="190"> ');
+                    }, 80000)
+
+                }
+
+            }
+            else {
+                alert('Please select atleast one file to upload');
+            }
         };
 
         // NOW UPLOAD THE FILES.
         $scope.uploadFiles = function () {
 
-            //FILL FormData WITH FILE DETAILS.
-            var data_ = new FormData();
-
-            for (var i in $scope.files) {
-                data_.append("uploadedFile"+i, $scope.files[i]);
-            }
-
-            var num = 1200;
-            // ADD LISTENERS.
-            //var objXhr = new XMLHttpRequest();
-            //objXhr.addEventListener("progress", updateProgress, false);
-            //objXhr.addEventListener("load", transferComplete, false);
-
-            //// SEND FILE DETAILS TO THE API.
-            //objXhr.open("POST", "http://localhost:55588/api/values/LoadFiles");
-            //objXhr.send(data);
-
-            $.ajax({
-                type: "POST",
-                url: "http://localhost:55588/api/values/LoadFiles",
-                cache: false,
-                contentType: false,
-                processData: false,
-                dataType: "json",
-                data: data_,
-                success: function (response) {
-                    $("#Content").text(response.d);
-                },
-                failure: function (response) {
-                    alert(response.d);
-                }
-            });
+           
+            
         }
 
-        // UPDATE PROGRESS BAR.
-        function updateProgress(e) {
-            if (e.lengthComputable) {
-                document.getElementById('pro').setAttribute('value', e.loaded);
-                document.getElementById('pro').setAttribute('max', e.total);
-            }
-        }
-
-        // CONFIRMATION.
-        function transferComplete(e) {
-            alert("Files uploaded successfully.");
-        }
+        
     });
 </script>
 </html>
